@@ -362,7 +362,7 @@ app.get('/api/bootstrap', (_req: Request, res: Response) => {
 
 app.post('/api/verify-pin', (req: Request, res: Response) => {
   const { pin } = req.body;
-  if (pin === 'Love123') {
+  if (pin === '43214') {
     res.json({ success: true, message: 'Admin authenticated' });
   } else {
     res.status(401).json({ success: false, message: 'Invalid Admin PIN' });

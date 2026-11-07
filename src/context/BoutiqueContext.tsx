@@ -53,6 +53,7 @@ interface BoutiqueContextType {
   updateImageSlots: (newSlots: Partial<ImageSlots>) => Promise<void>;
   updateServices: (newServices: ServiceItem[]) => Promise<void>;
   updateCalendarSlots: (newSlots: CalendarTimeSlot[]) => Promise<void>;
+  removeAppointment: (id: string) => void;
   testSupabase: (url: string, key: string) => Promise<{ success: boolean; message: string }>;
   sendWhatsAppDirect: (customText?: string) => void;
 }
@@ -404,6 +405,13 @@ export const BoutiqueProvider: React.FC<{ children: ReactNode }> = ({ children }
     const json = await res.json();
     const createdApt = json.appointment;
 
+    setAppointments((prev) => {
+      if (prev.some((a) => a.id === createdApt.id)) return prev;
+      const next = [createdApt, ...prev];
+      localStorage.setItem('mt_appointments_cache', JSON.stringify(next));
+      return next;
+    });
+
     if (settings.calendar_sync_enabled !== false) {
       try {
         await syncAppointmentToGoogleCalendar(
@@ -536,6 +544,14 @@ export const BoutiqueProvider: React.FC<{ children: ReactNode }> = ({ children }
     setCalendarSlots(newSlots);
   };
 
+  const removeAppointment = (id: string) => {
+    setAppointments((prev) => {
+      const next = prev.filter((a) => a.id !== id);
+      localStorage.setItem('mt_appointments_cache', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const testSupabase = async (
     url: string,
     key: string
@@ -598,6 +614,7 @@ export const BoutiqueProvider: React.FC<{ children: ReactNode }> = ({ children }
         updateImageSlots,
         updateServices,
         updateCalendarSlots,
+        removeAppointment,
         testSupabase,
         sendWhatsAppDirect,
       }}

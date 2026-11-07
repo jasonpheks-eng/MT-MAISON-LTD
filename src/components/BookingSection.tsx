@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useBoutique } from '../context/BoutiqueContext';
 import { ServiceItem } from '../types';
-import confetti from 'canvas-confetti';
 import {
   Clock,
   CheckCircle,
@@ -70,12 +69,15 @@ export const BookingSection: React.FC = () => {
     services,
     calendarSlots,
     createAppointment,
+    removeAppointment,
     settings,
     selectedServiceForBooking,
+    appointments,
   } = useBoutique();
 
-  // Collapsible Treatment Selection Menu (open by default for easy scroll-down)
-  const [isTreatmentMenuOpen, setIsTreatmentMenuOpen] = useState<boolean>(true);
+  // Collapsible Treatment Selection Menu
+  const [isTreatmentMenuOpen, setIsTreatmentMenuOpen] = useState<boolean>(false);
+  const [isItineraryOpen, setIsItineraryOpen] = useState<boolean>(false);
 
   // Category Filter for Treatments
   const [activeCategory, setActiveCategory] = useState<'all' | 'nails' | 'lashes' | 'hair'>('all');
@@ -190,6 +192,8 @@ export const BookingSection: React.FC = () => {
     setErrorMessage('');
     setIsSubmitting(true);
 
+    const waWindow = window.open('', '_blank');
+
     try {
       const appointment = await createAppointment({
         client_name: clientName.trim(),
@@ -202,16 +206,14 @@ export const BookingSection: React.FC = () => {
         notes: notes.trim(),
       });
 
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 60,
-          origin: { y: 0.7 },
-          colors: ['#C76A75', '#E5B8C0', '#F7EBEB', '#D4AF37'],
-        });
-      } catch (cErr) {}
-
       setConfirmedBooking(appointment);
+      setIsItineraryOpen(true);
+
+      // Scroll to My Bookings section
+      const itinerarySection = document.getElementById('my-bookings-section');
+      if (itinerarySection) {
+        itinerarySection.scrollIntoView({ behavior: 'smooth' });
+      }
 
       // WhatsApp deep link format
       const cleanNumber = settings.whatsapp_number.replace(/[^0-9]/g, '');
@@ -227,7 +229,11 @@ export const BookingSection: React.FC = () => {
         `Please confirm my booking slot. Thank you!`;
 
       const waUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(waText)}`;
-      window.open(waUrl, '_blank', 'noopener,noreferrer');
+      if (waWindow) {
+        waWindow.location.href = waUrl;
+      } else {
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+      }
     } catch (err: any) {
       setErrorMessage(err.message || 'Booking submission failed. Please try again.');
     } finally {
@@ -611,13 +617,13 @@ export const BookingSection: React.FC = () => {
             </div>
 
             {/* Right Column: Reservation Details & WhatsApp Request */}
-            <div className="lg:col-span-5 bg-[#b43859] rounded-3xl p-6 sm:p-8 border border-white/10 shadow-xl space-y-6">
+            <div className="lg:col-span-5 bg-gradient-to-br from-[#b43859] to-[#701932] rounded-3xl p-8 border border-white/20 shadow-2xl backdrop-blur-sm space-y-6">
               
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-rose-200">
+              <div className="border-b border-white/10 pb-4">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-rose-100">
                   3. Your Details
                 </h3>
-                <p className="text-xs text-rose-300/70 mt-1">
+                <p className="text-xs text-rose-200/70 mt-1">
                   We'll prepare your request and open WhatsApp directly with all details filled in.
                 </p>
               </div>
@@ -689,6 +695,34 @@ export const BookingSection: React.FC = () => {
                   <span>{isSubmitting ? 'Securing Slot...' : 'Request via WhatsApp ↗'}</span>
                 </button>
               </form>
+
+              {/* Step 4: My Bookings */}
+              {appointments.length > 0 && (
+                <div id="my-bookings-section" className="pt-6 border-t border-white/10">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-rose-200 mb-4">
+                    4. My Bookings
+                  </h3>
+                  <div className="space-y-3">
+                    {appointments.slice(0, 2).map((apt) => (
+                      <div key={apt.id} className="p-4 rounded-2xl bg-[#3f0622] border border-white/10 text-xs text-rose-200 relative group">
+                        <div className="flex justify-between font-medium text-white mb-1 pr-6">
+                          <span>{apt.service_title}</span>
+                          <button
+                            onClick={() => removeAppointment(apt.id)}
+                            className="absolute top-4 right-4 text-rose-300 hover:text-white transition-colors"
+                            title="Delete booking"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="opacity-80">
+                          {apt.date} at {apt.time_slot}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             </div>
 
