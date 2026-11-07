@@ -192,8 +192,6 @@ export const BookingSection: React.FC = () => {
     setErrorMessage('');
     setIsSubmitting(true);
 
-    const waWindow = window.open('', '_blank');
-
     try {
       const appointment = await createAppointment({
         client_name: clientName.trim(),
@@ -209,12 +207,6 @@ export const BookingSection: React.FC = () => {
       setConfirmedBooking(appointment);
       setIsItineraryOpen(true);
 
-      // Scroll to My Bookings section
-      const itinerarySection = document.getElementById('my-bookings-section');
-      if (itinerarySection) {
-        itinerarySection.scrollIntoView({ behavior: 'smooth' });
-      }
-
       // WhatsApp deep link format
       const cleanNumber = settings.whatsapp_number.replace(/[^0-9]/g, '');
       const sym = settings.currency_symbol || 'MWK';
@@ -229,11 +221,18 @@ export const BookingSection: React.FC = () => {
         `Please confirm my booking slot. Thank you!`;
 
       const waUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(waText)}`;
-      if (waWindow) {
-        waWindow.location.href = waUrl;
-      } else {
-        window.open(waUrl, '_blank', 'noopener,noreferrer');
-      }
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+
+      // Scroll smoothly to My Bookings section after DOM updates
+      setTimeout(() => {
+        const itinerarySection = document.getElementById('my-bookings-section');
+        if (itinerarySection) {
+          itinerarySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+
+      // Reset notes so customer can book another treatment if desired
+      setNotes('');
     } catch (err: any) {
       setErrorMessage(err.message || 'Booking submission failed. Please try again.');
     } finally {
